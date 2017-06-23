@@ -1,20 +1,12 @@
-# OpenVPN for Docker
-
-[![Build Status](https://travis-ci.org/kylemanna/docker-openvpn.svg)](https://travis-ci.org/kylemanna/docker-openvpn)
-[![Docker Stars](https://img.shields.io/docker/stars/kylemanna/openvpn.svg)](https://hub.docker.com/r/kylemanna/openvpn/)
-[![Docker Pulls](https://img.shields.io/docker/pulls/kylemanna/openvpn.svg)](https://hub.docker.com/r/kylemanna/openvpn/)
-[![ImageLayers](https://images.microbadger.com/badges/image/kylemanna/openvpn.svg)](https://microbadger.com/#/images/kylemanna/openvpn)
-
+# Docker OpenVPN image for Raspberry Pi (or other armhf)
+[![](https://images.microbadger.com/badges/image/mjenz/rpi-openvpn.svg)](https://microbadger.com/images/mjenz/rpi-openvpn "Get your own image badge on microbadger.com")
 
 OpenVPN server in a Docker container complete with an EasyRSA PKI CA.
+Literally just [kylemanna/docker-openvpn](https://github.com/kylemanna/docker-openvpn) with an armhf base image.
 
-Extensively tested on [Digital Ocean $5/mo node](http://bit.ly/1C7cKr3) and has
-a corresponding [Digital Ocean Community Tutorial](http://bit.ly/1AGUZkq).
+On a Raspberry Pi 3 I get about 8Mbps up and down.
 
-#### Upstream Links
-
-* Docker Registry @ [kylemanna/openvpn](https://hub.docker.com/r/kylemanna/openvpn/)
-* GitHub @ [kylemanna/docker-openvpn](https://github.com/kylemanna/docker-openvpn)
+The rest of this readme is unchanged from upstream, change "kylemanna/openvpn" to "mjenz/rpi-openvpn" to use the commands.
 
 ## Quick Start
 
