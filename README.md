@@ -6,6 +6,11 @@ Literally just [kylemanna/docker-openvpn](https://github.com/kylemanna/docker-op
 
 On a Raspberry Pi 3 I get about 8Mbps up and down.
 
+To install as a service:
+```
+docker run -v ovpn-data-mje:/etc/openvpn -d -p 1194:1194/udp --cap-add=NET_ADMIN --name openvpn --restart unless-stopped mjenz/rpi-openvpn
+```
+
 To make clients use local DNS (e.g. so they can resolve local hostnames), edit the config file:
 ```
 docker run -v $OVPN_DATA:/etc/openvpn --rm -it arm32v6/alpine vi /etc/openvpn/openvpn.conf
