@@ -6,6 +6,15 @@ Literally just [kylemanna/docker-openvpn](https://github.com/kylemanna/docker-op
 
 On a Raspberry Pi 3 I get about 8Mbps up and down.
 
+To make clients use local DNS (e.g. so they can resolve local hostnames), edit the config file:
+```
+docker run -v $OVPN_DATA:/etc/openvpn --rm -it arm32v6/alpine vi /etc/openvpn/openvpn.conf
+```
+and change the the DNS settings to:
+```
+push "dhcp-option DNS 192.168.1.1"
+```
+
 The rest of this readme is unchanged from upstream, change "kylemanna/openvpn" to "mjenz/rpi-openvpn" to use the commands.
 
 ## Quick Start
