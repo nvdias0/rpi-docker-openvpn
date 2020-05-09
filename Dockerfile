@@ -5,7 +5,6 @@
 
 # Smallest base image
 FROM arm32v7/alpine:latest
-#FROM arm32v6/alpine:3.6
 
 # Testing: pamtester
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing/" >> /etc/apk/repositories && \
