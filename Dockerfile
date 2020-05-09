@@ -27,9 +27,12 @@ VOLUME ["/etc/openvpn"]
 EXPOSE 1194/udp
 
 CMD ["ovpn_run"]
-
 ADD ./bin /usr/local/bin
 RUN chmod a+x /usr/local/bin/*
+
+# Update easy-rsa
+ADD ./easy-rsa /usr/share/easy-rsa
+RUN chmod a+x  /usr/share/easy-rsa
 
 # Add support for OTP authentication using a PAM module
 ADD ./otp/openvpn /etc/pam.d/
