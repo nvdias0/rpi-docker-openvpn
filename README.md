@@ -10,7 +10,7 @@ The docker container: rpi-openvpn
 
 The git repository: nvdias0/rpi-dockeropenvpn
 
-The git repository for the kodi add-on: nvdias0/rpi-kodi-openvpn
+The git repository for the kodi add-on: nvdias0/docker.openvpn.server
 
 
 ## QUICK START
@@ -73,4 +73,9 @@ Retrieve the client configuration file (*.ovpn) with embedded certificates and g
 
 There are some issues, when running in a distribution as LibreELEC, because the network privileges are limited. Calling the "docker run" needs some adjusments.
 
-[WORK IN PROGRESS]
+
+## Install the kodi add-on:
+
+Just follow the instructions in the kodi add-on git :
+
+nvdias0/docker.openvpn.server
