@@ -113,7 +113,7 @@ nvdias0/docker.openvpn.server
 
 By default easyrsa has an interactive approach to securely receive passwords from the keyboard.
 
-The version bundled in this repository, has a slightly changed eayrsa that can include the contents of 2 environment variables when internally callin openssl:
+The version bundled in this repository, has a slightly changed eayrsa that can include the contents of 2 environment variables when internally calling openssl:
 
 $EASYRSA_GENREQ_OPTS  as additional key generation options:
 
@@ -134,20 +134,20 @@ $EASYRSA_SIGNREQ_OPTS as additional signing options
 
 ### EXAMPLE: init_pki (password in command line):
 
-```docker run --rm -it \
+	docker run --rm -it \
            -v $OVPN_DATA:/etc/openvpn \ 
            -e "EASYRSA_GENREQ_OPTS=-passout pass:CA_SECRET" \
            -e "EASYRSA_SIGNREQ_OPTS=-passin pass:CA_SECRET" \
            nvdias/rpi-openvpn \
-           bash -c "echo OpenVPN Server name | ovpn_initpki"```
+           bash -c "echo OpenVPN Server name | ovpn_initpki"
 
 	 
 ### EXAMPLE: Create a client (password in command line):
  
-```docker run --rm -it \
+	docker run --rm -it \
           -v $OVPN_DATA:/etc/openvpn \
 		  -e "EASYRSA_GENREQ_OPTS=-passout pass:USER-PASSWORD" \
 		  -e "EASYRSA_SIGNREQ_OPTS=-passin pass:CA_SECRET" \
 		  nvdias/rpi-openvpn \
-		  easyrsa build-client-full USERNAME```
+		  easyrsa build-client-full USERNAME
  
