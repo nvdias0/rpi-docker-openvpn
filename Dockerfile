@@ -1,10 +1,11 @@
 # Original credit: https://github.com/jpetazzo/dockvpn
-# Update : nvdias 2020
-# change in github
-# update in local repository
+#
+# Updated by nvdias 2020
+# Easy RSA update to accept extra gen and sgn options - see docs
 
-# Smallest base image
-FROM arm32v7/alpine:latest
+
+# Smallest base image - recent versions are not yet compatible with ovpn scripts.
+FROM alpine:3.7
 
 # Testing: pamtester
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing/" >> /etc/apk/repositories && \
@@ -32,7 +33,7 @@ RUN chmod a+x /usr/local/bin/*
 
 # Update easy-rsa
 ADD ./easy-rsa /usr/share/easy-rsa
-RUN chmod a+x  /usr/share/easy-rsa
+RUN chmod a+x  /usr/share/easy-rsa/*
 
 # Add support for OTP authentication using a PAM module
 ADD ./otp/openvpn /etc/pam.d/

@@ -469,6 +469,10 @@ current CA keypair. If you intended to start a new CA, run init-pki first."
 
 	out_key_tmp="$(mktemp -u "$out_key.XXXXXXXXXX")"; EASYRSA_TEMP_FILE_2="$out_key_tmp"
 	out_file_tmp="$(mktemp -u "$out_file.XXXXXXXXXX")"; EASYRSA_TEMP_FILE_3="$out_file_tmp"
+
+	# Accept extra options from command-line
+	opts="$opts $EASYRSA_GENREQ_OPTS"
+
 	# create the CA keypair:
 	"$EASYRSA_OPENSSL" req -utf8 -new -newkey $EASYRSA_ALGO:"$EASYRSA_ALGO_PARAMS" \
 		-config "$EASYRSA_SSL_CONF" -keyout "$out_key_tmp" -out "$out_file_tmp" $opts || \
@@ -561,8 +565,11 @@ $EASYRSA_EXTRA_EXTS"
 
 	key_out_tmp="$(mktemp -u "$key_out.XXXXXXXXXX")"; EASYRSA_TEMP_FILE_2="$key_out_tmp"
 	req_out_tmp="$(mktemp -u "$req_out.XXXXXXXXXX")"; EASYRSA_TEMP_FILE_3="$req_out_tmp"
-	# generate request
+
+	# Accept extra options from command-line
 	opts="$opts $EASYRSA_GENREQ_OPTS"
+
+	# generate request
 	[ $EASYRSA_BATCH ] && opts="$opts -batch"
 	"$EASYRSA_OPENSSL" req -utf8 -new -newkey $EASYRSA_ALGO:"$EASYRSA_ALGO_PARAMS" \
 		-config "$EASYRSA_SSL_CONF" -keyout "$key_out_tmp" -out "$req_out_tmp" $opts \
@@ -582,6 +589,18 @@ sign_req() {
 	local crt_type="$1" opts=
 	local req_in="$EASYRSA_PKI/reqs/$2.req"
 	local crt_out="$EASYRSA_PKI/issued/$2.crt"
+
+	# Randomize Serial number
+	local i= serial= check_serial=
+	for i in 1 2 3 4 5; do
+		"$EASYRSA_OPENSSL" rand -hex 16 -out "$EASYRSA_PKI/serial"
+		serial="$(cat "$EASYRSA_PKI/serial")"
+		check_serial="$("$EASYRSA_OPENSSL" ca -config "$EASYRSA_SSL_CONF" -status "$serial" 2>&1)"
+		case "$check_serial" in
+			*"not present in db"*) break ;;
+			*) continue ;;
+		esac
+	done
 
 	# Support batch by internal caller:
 	[ "$3" = "batch" ] && local EASYRSA_BATCH=1
@@ -641,6 +660,15 @@ $(display_dn req "$req_in")
 			esac
 		fi
 
+		# If type is server and no subjectAltName was requested,
+		# add one to the extensions file
+		if [[ "$crt_type" == 'server' ]]
+		then
+			echo "$EASYRSA_EXTRA_EXTS" | 
+				grep -q subjectAltName || 
+				print $(default_server_san "$req_in")
+		fi
+
 		# Add any advanced extensions supplied by env-var:
 		[ -n "$EASYRSA_EXTRA_EXTS" ] && print "$EASYRSA_EXTRA_EXTS"
 		
@@ -653,7 +681,6 @@ $EASYRSA_TEMP_FILE"
 	opts="$opts $EASYRSA_SIGNREQ_OPTS" 
 
 	crt_out_tmp="$(mktemp -u "$crt_out.XXXXXXXXXX")"; EASYRSA_TEMP_FILE_2="$crt_out_tmp"
-
 	"$EASYRSA_OPENSSL" ca -utf8 -in "$req_in" -out "$crt_out_tmp" -config "$EASYRSA_SSL_CONF" \
 		-extfile "$EASYRSA_TEMP_FILE" -days $EASYRSA_CERT_EXPIRE -batch $opts \
 		|| die "signing failed (openssl output above may have more detail)"
@@ -929,12 +956,28 @@ display_dn() {
 	print "$("$EASYRSA_OPENSSL" $format -in "$path" -noout -subject -nameopt multiline)"
 } # => display_dn()
 
+# generate default SAN from req/X509, passed by full pathname
+default_server_san() {
+	local path="$1"
+	local cn=$(
+		"$EASYRSA_OPENSSL" req -in "$path" -noout -subject -nameopt sep_multiline |
+		awk -F'=' '/^  *CN=/{print $2}'
+		)
+	echo "$cn" | egrep -q '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+	if [[ $? -eq 0 ]]
+	then
+		print "subjectAltName = IP:$cn"
+	else
+		print "subjectAltName = DNS:$cn"
+	fi
+} # => default_server_san()
+
 # verify a file seems to be a valid req/X509
 verify_file() {
 	local format="$1" path="$2"
 	"$EASYRSA_OPENSSL" $format -in "$path" -noout 2>/dev/null || return 1
 	return 0
-} # => verify_x509()
+} # => verify_file()
 
 # show-* command backend
 # Prints req/cert details in a readable format
@@ -995,13 +1038,15 @@ vars_setup() {
 
 	# set up program path
 	local prog_vars="${0%/*}/vars"
+	# set up PKI path
+	local pki_vars="${EASYRSA_PKI:-$PWD/pki}/vars"
 
 	# command-line path:
 	if [ -f "$EASYRSA_VARS_FILE" ]; then
 		vars="$EASYRSA_VARS_FILE"
-	# EASYRSA_PKI, if defined:
-	elif [ -n "$EASYRSA_PKI" ] && [ -f "$EASYRSA_PKI/vars" ]; then
-		vars="$EASYRSA_PKI/vars"
+	# PKI location, if present:
+	elif [ -f "$pki_vars" ]; then
+		vars="$pki_vars"
 	# EASYRSA, if defined:
 	elif [ -n "$EASYRSA" ] && [ -f "$EASYRSA/vars" ]; then
 		vars="$EASYRSA/vars"
@@ -1019,9 +1064,9 @@ Note: using Easy-RSA configuration from: $vars"
 	fi
 	
 	# Set defaults, preferring existing env-vars if present
-	set_var EASYRSA		"$PWD"
+	set_var EASYRSA		"${0%/*}"
 	set_var EASYRSA_OPENSSL	openssl
-	set_var EASYRSA_PKI	"$EASYRSA/pki"
+	set_var EASYRSA_PKI	"$PWD/pki"
 	set_var EASYRSA_DN	cn_only
 	set_var EASYRSA_REQ_COUNTRY	"US"
 	set_var EASYRSA_REQ_PROVINCE	"California"
@@ -1231,4 +1276,4 @@ case "$cmd" in
 		;;
 esac
 
-# vim: ft=sh nu ai sw=8 ts=8
+# vim: ft=sh nu ai sw=8 ts=8 noet

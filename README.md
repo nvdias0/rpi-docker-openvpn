@@ -1,16 +1,36 @@
-[WORK IN PROGRESS]
-
 # OpenVPN server in docker complete with an EasyRSA PKI CA.
 
 Container was initially tagged from mjenz/rpi-openvpn, which in turn is kylemanna/docker-openvpn with an armhf base image.
 
 This source was forked in order to be used in a kodi add-on to allow easy vpn implementation in closed systems like LibreELEC.
 
+Easyrsa was also updated to support additional command line parameters to enable full silent processing [WIP]
+
+
 The docker container: rpi-openvpn
 
-The git repository: nvdias0/rpi-dockeropenvpn
+This git repository: nvdias0/rpi-dockeropenvpn
 
 The git repository for the kodi add-on: nvdias0/docker.openvpn.server
+
+
+## INSTALL
+
+Assuming docker is already installed (sudo apt-get install docker), executing one of the QUICK START docker commands will automatically download the <latest> image from the docker hub
+
+
+### BUILD
+
+If you want to change and build this git yourself:
+
+a) Clone this respository in your local storage:
+
+``` git clone https://github.com/nvdias0/rpi-docker-openvpn.git ```
+
+b) Build a local docker image and name-it "nvdias/rpi-openvpn":
+
+``` docker build -t nvdias/rpi-openvpn rpi-docker-openvpn/ ```
+
 
 
 ## QUICK START
@@ -33,12 +53,12 @@ Initialize the $OVPN_DATA container that will hold the configuration files and c
 
 ```docker run -v $OVPN_DATA:/etc/openvpn --rm nvdias/rpi-openvpn ovpn_genconfig -u udp://$OVPN_SERVER```
 
-### init pki 
+### Init pki 
 
 Key generation in a Raspberry Pi 4 will take from 5 to 15 minutes !!!
 You will be asked for:
 - a passphrase (don't loose it - it will be needed for further configurations;
-- a name for the CA KEY (just a easy name as: my.openvpn.server not used in normal operation);
+- a name for the CA KEY (just a easy name as "my openvpn server" - not used in normal operation);
 
 WAIT ... 
 
@@ -47,11 +67,13 @@ After generation, the passphrase will be asked again.
 ```docker run -v $OVPN_DATA:/etc/openvpn --rm -it nvdias/rpi-openvpn ovpn_initpki```
 
 ### Edit config to make clients use local DNS
+
 (e.g. so they can resolve local hostnames):
 
 ```docker run -v $OVPN_DATA:/etc/openvpn --rm -it nvdias/rpi-openvpn vi /etc/openvpn/openvpn.conf```
 
 Add the following settings at the end of file (assuming Local network 192.168.0.0):
+
 ```push "dhcp-option DNS 192.168.0.1"```
 
 ### Start OpenVPN server process
@@ -59,6 +81,7 @@ Add the following settings at the end of file (assuming Local network 192.168.0.
 ```docker run -v $OVPN_DATA:/etc/openvpn -d -p 1194:1194/udp --cap-add=NET_ADMIN nvdias/rpi-openvpn```
 
 Or to install as a service:
+
 ```docker run -v $OVPN_DATE/etc/openvpn -d -p 1194:1194/udp --cap-add=NET_ADMIN --name openvpn --restart unless-stopped nvdias/rpi-openvpn```
 
 ### Create a client ###
@@ -69,13 +92,62 @@ Retrieve the client configuration file (*.ovpn) with embedded certificates and g
 
 ```docker run -v $OVPN_DATA:/etc/openvpn --rm nvdias/rpi-openvpn ovpn_getclient USERNAME > USERNAME.ovpn```
 
-## Inclusion in a kodi add-on ##
-
-There are some issues, when running in a distribution as LibreELEC, because the network privileges are limited. Calling the "docker run" needs some adjusments.
-
 
 ## Install the kodi add-on:
+
+A kodi add-on is now working with LibreELEC on Raspberry Pi.
+
+It downloads the docker image automatically.
+
+You just need to configure server and clients - there are 2 scripts to help that process.
+
 
 Just follow the instructions in the kodi add-on git :
 
 nvdias0/docker.openvpn.server
+
+
+
+## WIP - silent easyrsa
+(Passing options thought the command line.)
+
+By default easyrsa has an interactive approach to securely receive passwords from the keyboard.
+
+The version bundled in this repository, has a slightly changed eayrsa that can include the contents of 2 environment variables when internally callin openssl:
+
+$EASYRSA_GENREQ_OPTS  as additional key generation options:
+
+   Examples:
+
+     EASYRSA_GENREQ_OPTS="-passout pass:my-secret"
+
+     EASYRSA_GENREQ_OPTS="-passout file:file_with_my-secret"
+  
+$EASYRSA_SIGNREQ_OPTS as additional signing options
+
+   Examples:  
+
+     EASYRSA_SIGNREQ_OPTS="-passin pass:ca-secret_for_validation"
+ 
+     EASYRSA_SIGNREQ_OPTS="-passin file:file_with_ca-secret_for_validation"
+
+
+### EXAMPLE: init_pki (password in command line):
+
+```docker run --rm -it \
+           -v $OVPN_DATA:/etc/openvpn \ 
+           -e "EASYRSA_GENREQ_OPTS=-passout pass:CA_SECRET" \
+           -e "EASYRSA_SIGNREQ_OPTS=-passin pass:CA_SECRET" \
+           nvdias/rpi-openvpn \
+           bash -c "echo OpenVPN Server name | ovpn_initpki"```
+
+	 
+### EXAMPLE: Create a client (password in command line):
+ 
+```docker run --rm -it \
+          -v $OVPN_DATA:/etc/openvpn \
+		  -e "EASYRSA_GENREQ_OPTS=-passout pass:USER-PASSWORD" \
+		  -e "EASYRSA_SIGNREQ_OPTS=-passin pass:CA_SECRET" \
+		  nvdias/rpi-openvpn \
+		  easyrsa build-client-full USERNAME```
+ 
